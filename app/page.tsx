@@ -1,65 +1,404 @@
 import Image from "next/image";
+import Link from "next/link";
+import { Mail, Phone, MapPin, ExternalLink, GraduationCap, Briefcase, Target, Star, Cpu, Code } from "lucide-react";
 
-export default function Home() {
+
+import dbConnect from "@/lib/mongodb";
+import Profile from "@/models/Profile";
+import Project from "@/models/Project";
+import Certificate from "@/models/Certificate";
+import CertificatesSection from "@/components/CertificatesSection";
+import Hero from "@/components/Hero";
+import profileImage from "@/public/profile-final.png";
+
+export const dynamic = 'force-dynamic'; // Ensures fresh data is fetched on load and prevents static prerendering related DB crashes
+
+export default async function Home() {
+  await dbConnect();
+  const profileDoc = await Profile.findOne();
+  const projectsDoc = await Project.find({}).sort({ createdAt: -1 });
+  const certificatesDoc = await Certificate.find({}).sort({ order: 1, createdAt: 1 });
+
+  // Fallbacks if DB is empty
+  const profile = profileDoc || {
+    name: "Mulugeta Ketemaw",
+    summary: "A motivated and dedicated Information Technology graduate with strong skills in web development and software systems.",
+    professionalSummary: "Experienced in developing applications using modern technologies such as React, Node.js, and MongoDB. Passionate about problem solving, research, and innovation, with proven achievement in competitive projects.",
+    phone: "+251 915 942 488",
+    email: "mulugetaketemaw2@gmail.com",
+    location: "Addis Ababa, Ethiopia"
+  };
+
+  const projects = projectsDoc.length > 0 ? projectsDoc : [
+    {
+      title: "Vital Event Registration System",
+      description: "Developed a robust system to manage vital records including birth, death, and marriage. Passed a high-level innovation competition, demonstrating strong technical impact.",
+      technologies: ["React", "Node.js", "MongoDB", "Express"],
+      statusBadge: "Awarded Project",
+      url: ""
+    },
+    {
+      title: "Organizational Management System",
+      description: "A comprehensive management system designed to streamline organizational workflows, community interactions, and record keeping.",
+      technologies: ["Fullstack Dev", "Database Design", "Auth", "UI/UX"],
+      statusBadge: "Successfully Implemented",
+      url: ""
+    }
+  ];
+
+  const defaultCerts = [
+    { _id: "1", title: "Startup Innovation Founder", org: "Ministry of Innovation & Tech", imageUrl: "" },
+    { _id: "2", title: "Ethics & Anti-Corruption (2x)", org: "Wollo University", imageUrl: "" },
+    { _id: "3", title: "Ambassador of Ethics", org: "Wollo University", imageUrl: "" },
+    { _id: "4", title: "Recognition Certificate", org: "Federal Anti-Corruption Commission", imageUrl: "" },
+    { _id: "5", title: "Peace Forum Certificate", org: "Ethiopian Peace Forum", imageUrl: "" },
+    { _id: "6", title: "Competition Certificates (2x)", org: "Innovation Awards", imageUrl: "" },
+  ];
+  const certificates = certificatesDoc.length > 0
+    ? certificatesDoc.map((c: any) => ({ _id: c._id.toString(), title: c.title, org: c.org, imageUrl: c.imageUrl || "" }))
+    : defaultCerts;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col">
+      {/* 1. Hero / About Us Section */}
+      <Hero profile={{ name: profile.name, summary: profile.summary }} profileImage={profileImage} />
+
+      {/* 2. Professional Summary Section */}
+      <section className="py-24 bg-white relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-6 relative">
+          {/* Decorative quotes */}
+          <div className="absolute top-0 left-0 text-orange/10 text-[12rem] font-serif leading-none -translate-x-12 -translate-y-8 select-none">“</div>
+          <div className="absolute bottom-0 right-0 text-orange/10 text-[12rem] font-serif leading-none translate-x-12 translate-y-16 select-none">”</div>
+
+          <div className="relative z-10 text-center space-y-10">
+            <div className="space-y-2">
+              <h2 className="text-4xl md:text-5xl font-bold text-navy">Professional Summary</h2>
+              <div className="flex justify-center">
+                <div className="h-1.5 w-24 bg-orange rounded-full"></div>
+              </div>
+            </div>
+
+            <div className="max-w-4xl mx-auto">
+              <p className="text-xl md:text-2xl text-navy leading-relaxed font-serif italic font-medium">
+                {profile.professionalSummary}
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* 3. Skills & Languages Section */}
+      <section id="skills" className="py-24 bg-gray-light">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col items-center text-center mb-16">
+            <h2 className="text-4xl font-bold text-navy">Skills & Expertise</h2>
+            <div className="section-line !w-16 mx-auto mt-4"></div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Tech Stack */}
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-medium hover:border-orange transition-colors group">
+              <div className="w-14 h-14 bg-navy/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-navy transition-colors">
+                <Target className="text-navy group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold text-navy mb-4">Core Technologies</h3>
+              <ul className="space-y-3">
+                {["React.js", "Node.js", "Express", "MongoDB", "Tailwind CSS", "Next.js", "JavaScript (ES6+)"].map((skill) => (
+                  <li key={skill} className="flex items-center space-x-2 text-gray-600">
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange"></div>
+                    <span>{skill}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Languages */}
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-medium hover:border-orange transition-colors group">
+              <div className="w-14 h-14 bg-navy/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-navy transition-colors">
+                <Star className="text-navy group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold text-navy mb-4">Languages</h3>
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold text-navy">Amharic</span>
+                    <span className="text-orange">Native</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-medium rounded-full overflow-hidden">
+                    <div className="h-full bg-navy w-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold text-navy">English</span>
+                    <span className="text-orange">Good</span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-medium rounded-full overflow-hidden">
+                    <div className="h-full bg-navy w-[80%]"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hobbies */}
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-medium hover:border-orange transition-colors group">
+              <div className="w-14 h-14 bg-navy/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-navy transition-colors">
+                <Cpu className="text-navy group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold text-navy mb-4">Interests</h3>
+              <ul className="space-y-4">
+                {["Problem Solving", "Reading Scientific Books", "Research & Innovation", "UI/UX Design"].map((hobby) => (
+                  <li key={hobby} className="px-4 py-2 bg-gray-light rounded-xl text-navy font-medium border border-transparent hover:border-navy/20 transition-all">
+                    {hobby}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-      </main>
+      </section>
+
+      {/* 4. Projects Section */}
+      <section id="projects" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col items-center text-center mb-16">
+            <h2 className="text-4xl font-bold text-navy">Featured Projects</h2>
+            <div className="section-line !w-16 mx-auto mt-4"></div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-10">
+            {projects.map((proj: any, index: number) => {
+              const isDark = index % 2 === 0;
+              return (
+                <div key={proj._id || index} className={`group relative rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow ${isDark ? 'bg-navy shadow-2xl' : 'bg-white border-4 border-navy'}`}>
+                  {proj.imageUrl && (
+                    <div className="relative w-full h-56 overflow-hidden border-b-2 border-orange/20">
+                      <Image 
+                        src={proj.imageUrl} 
+                        alt={proj.title} 
+                        fill={true}
+                        className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      <div className="absolute inset-0 bg-navy/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                    </div>
+                  )}
+
+                  <div className="p-10 space-y-6">
+                    <h3 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-navy'}`}>{proj.title}</h3>
+
+                    <p className={`leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {proj.description}
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {proj.technologies.map((tech: string) => (
+                        <span key={tech} className={`px-3 py-1 rounded-full text-sm font-medium ${isDark ? 'text-gray-400 border border-white/20' : 'text-navy bg-gray-light'}`}>
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                    {(proj.url || proj.githubUrl) && (
+                      <div className="pt-4 flex flex-wrap gap-6">
+                        {proj.url && (
+                          <a href={proj.url} target="_blank" rel="noreferrer" className="inline-flex items-center space-x-2 font-bold text-orange hover:underline decoration-2 underline-offset-4">
+                            <span>View Live</span>
+                            <ExternalLink size={18} />
+                          </a>
+                        )}
+                        {proj.githubUrl && (
+                          <a href={proj.githubUrl} target="_blank" rel="noreferrer" className={`inline-flex items-center space-x-2 font-bold hover:underline decoration-2 underline-offset-4 ${isDark ? 'text-white' : 'text-navy'}`}>
+                            <Code size={18} />
+                            <span>Code Repo</span>
+                          </a>
+                        )}
+
+                      </div>
+                    )}
+
+                  </div>
+                  <div className="h-2 bg-orange w-0 group-hover:w-full transition-all duration-500"></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Certificates & Recognition Section */}
+      <section id="certificates" className="py-24 navy-gradient text-white">
+        <div className="max-w-7xl mx-auto px-6 text-white">
+          <div className="grid lg:grid-cols-12 gap-16">
+            <div className="lg:col-span-4 space-y-6 text-center lg:text-left">
+              <h2 className="text-4xl font-bold">Certificates & Recognition</h2>
+              <div className="h-1.5 w-20 bg-orange mx-auto lg:mx-0"></div>
+              <p className="text-gray-400 text-lg">
+                Recognized for excellence in innovation, ethics, and community leadership through various national and university awards.
+              </p>
+            </div>
+            
+            <CertificatesSection certificates={certificates} />
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Education & Experience Section */}
+      <section className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-20">
+          {/* Education */}
+          <div className="space-y-12">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-navy rounded-2xl text-white"><GraduationCap /></div>
+              <h2 className="text-3xl font-bold text-navy">Education</h2>
+            </div>
+            
+            <div className="space-y-10 border-l-2 border-gray-medium ml-6 pl-10 relative">
+              <div className="relative">
+                <div className="absolute -left-13 top-0 w-6 h-6 bg-white border-4 border-orange rounded-full"></div>
+                <h4 className="text-gray-500 font-bold mb-2">2014 – 2018</h4>
+                <h3 className="text-2xl font-bold text-navy">BSc in Information Technology</h3>
+                <p className="text-orange font-semibold">Wollo University, Ethiopia</p>
+                <div className="mt-6 flex flex-wrap gap-4">
+                  <div className="flex items-center space-x-3 bg-navy/5 px-4 py-2 rounded-2xl border border-navy/10 group hover:bg-navy hover:text-white transition-all duration-300">
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500 group-hover:text-white/70">CGPA</span>
+                    <span className="text-lg font-bold text-navy group-hover:text-white transition-colors">3.59</span>
+                  </div>
+                  <div className="flex items-center space-x-3 bg-orange/5 px-4 py-2 rounded-2xl border border-orange/10 group hover:bg-orange hover:text-white transition-all duration-300">
+                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500 group-hover:text-white/70">Exit Exam</span>
+                    <span className="text-lg font-bold text-orange group-hover:text-white transition-colors">60</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute -left-13 top-0 w-6 h-6 bg-white border-4 border-navy rounded-full"></div>
+                <h4 className="text-gray-500 font-bold mb-2">2010 – 2013</h4>
+                <h3 className="text-2xl font-bold text-navy">Preparatory Education</h3>
+                <p className="text-gray-500">South Wollo, Marye High School</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Experience */}
+          <div className="space-y-12">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-orange rounded-2xl text-white"><Briefcase /></div>
+              <h2 className="text-3xl font-bold text-navy">Experience</h2>
+            </div>
+
+            <div className="space-y-10 border-l-2 border-gray-medium ml-6 pl-10 relative">
+              <div className="relative">
+                <div className="absolute -left-13 top-0 w-6 h-6 bg-white border-4 border-orange rounded-full"></div>
+                <h4 className="text-gray-500 font-bold mb-2">Internal Internship</h4>
+                <h3 className="text-2xl font-bold text-navy">App Factory Academy</h3>
+                <p className="text-orange font-semibold">Wollo University</p>
+                <ul className="mt-4 space-y-3 text-gray-600">
+                  <li className="flex items-start space-x-2">
+                    <span className="text-orange mt-1">✓</span>
+                    <span>Participated in various software development projects.</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <span className="text-orange mt-1">✓</span>
+                    <span>Gained practical experience in modern application architecture.</span>
+                  </li>
+                  <li className="flex items-start space-x-2">
+                    <span className="text-orange mt-1">✓</span>
+                    <span>Worked collaboratively in high-performing team environments.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. Contact Me Section */}
+      <section id="contact" className="py-24 bg-gray-light relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-orange/5 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-navy/5 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2"></div>
+
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <div className="flex flex-col items-center text-center mb-12">
+            <h4 className="text-orange font-bold tracking-widest uppercase text-sm mb-3">Contact Me</h4>
+            <h2 className="text-4xl font-bold text-navy mb-4">Get In Touch</h2>
+            <div className="h-1.5 w-16 bg-orange rounded-full"></div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Phone Card */}
+            <a 
+              href={`tel:${profile.phone}`}
+              className="group bg-navy p-8 rounded-3xl shadow-xl hover:shadow-navy/20 hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center text-white"
+            >
+              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white group-hover:rotate-6 transition-all duration-500">
+                <Phone className="text-white group-hover:text-navy transition-colors" size={28} />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Phone</h3>
+              <p className="text-white/60 mb-4 text-xs italic">Call or Text</p>
+              <span className="text-base font-bold break-all">{profile.phone}</span>
+            </a>
+
+            {/* Email Card */}
+            <a 
+              href={`mailto:${profile.email}`}
+              className="group bg-orange p-8 rounded-3xl shadow-xl hover:shadow-orange/20 hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center text-white"
+            >
+              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white group-hover:-rotate-6 transition-all duration-500">
+                <Mail className="text-white group-hover:text-orange transition-colors" size={28} />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Email</h3>
+              <p className="text-white/60 mb-4 text-xs italic">Send a Message</p>
+              <span className="text-sm font-bold whitespace-nowrap">{profile.email}</span>
+            </a>
+
+            {/* Location Card */}
+            <div 
+              className="group bg-cyan-700 p-8 rounded-3xl shadow-xl hover:shadow-cyan-700/20 hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center text-white"
+            >
+              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white group-hover:rotate-6 transition-all duration-500">
+                <MapPin className="text-white group-hover:text-cyan-700 transition-colors" size={28} />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Location</h3>
+              <p className="text-white/60 mb-4 text-xs italic">Based In</p>
+              <span className="text-base font-bold">{profile.location}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 8. Footer / References */}
+      <section className="py-20 bg-white border-t border-gray-medium">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h3 className="text-3xl font-serif text-navy mb-12">Professional References</h3>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
+            <div className="p-8 bg-white rounded-3xl shadow-sm border border-gray-medium">
+              <p className="text-orange font-bold text-sm uppercase mb-2">Professional Reference</p>
+              <h4 className="text-xl font-bold text-navy">Mr. Tibebu Legesse (MSc)</h4>
+              <p className="text-gray-500 mb-4 font-medium">Head of Department – IT, Wollo University</p>
+              <div className="text-sm space-y-1">
+                <p className="text-gray-600">+251 953 043 045</p>
+                <p className="text-navy font-medium">tibebulegesse23@gmail.com</p>
+              </div>
+            </div>
+            <div className="p-8 bg-white rounded-3xl shadow-sm border border-gray-medium text-left">
+              <p className="text-orange font-bold text-sm uppercase mb-2">Academic Advisor</p>
+              <h4 className="text-xl font-bold text-navy">Mr. Eyob (MSc)</h4>
+              <p className="text-gray-500 mb-4 font-medium">Advisor – IT, Kombolcha Institute of Tech</p>
+              <div className="text-sm space-y-1">
+                <p className="text-gray-600">+251 964 466 108</p>
+                <p className="text-navy font-medium">eyob.teshager@gmail.com</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-gray-medium flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
+            <p>© 2026 {profile.name}. Built with Next.js & Tailwind CSS.</p>
+
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <Link href="#" className="hover:text-navy transition-colors">Privacy Policy</Link>
+              <Link href="#" className="hover:text-navy transition-colors">Terms of Service</Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
