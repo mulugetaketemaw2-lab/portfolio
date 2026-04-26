@@ -9,6 +9,8 @@ import Project from "@/models/Project";
 import Certificate from "@/models/Certificate";
 import CertificatesSection from "@/components/CertificatesSection";
 import Hero from "@/components/Hero";
+import SkillsSection from "@/components/SkillsSection";
+import ReferencesSection from "@/components/ReferencesSection";
 import profileImage from "@/public/profile-final.png";
 
 export const dynamic = 'force-dynamic'; // Ensures fresh data is fetched on load and prevents static prerendering related DB crashes
@@ -88,75 +90,7 @@ export default async function Home() {
       </section>
 
       {/* 3. Skills & Languages Section */}
-      <section id="skills" className="py-24 bg-gray-light">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col items-center text-center mb-16">
-            <h2 className="text-4xl font-bold text-navy">Skills & Expertise</h2>
-            <div className="section-line !w-16 mx-auto mt-4"></div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Tech Stack */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-medium hover:border-orange transition-colors group">
-              <div className="w-14 h-14 bg-navy/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-navy transition-colors">
-                <Target className="text-navy group-hover:text-white transition-colors" />
-              </div>
-              <h3 className="text-2xl font-bold text-navy mb-4">Core Technologies</h3>
-              <ul className="space-y-3">
-                {["React.js", "Node.js", "Express", "MongoDB", "Tailwind CSS", "Next.js", "JavaScript (ES6+)"].map((skill) => (
-                  <li key={skill} className="flex items-center space-x-2 text-gray-600">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange"></div>
-                    <span>{skill}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Languages */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-medium hover:border-orange transition-colors group">
-              <div className="w-14 h-14 bg-navy/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-navy transition-colors">
-                <Star className="text-navy group-hover:text-white transition-colors" />
-              </div>
-              <h3 className="text-2xl font-bold text-navy mb-4">Languages</h3>
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-semibold text-navy">Amharic</span>
-                    <span className="text-orange">Native</span>
-                  </div>
-                  <div className="h-2 w-full bg-gray-medium rounded-full overflow-hidden">
-                    <div className="h-full bg-navy w-full"></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-semibold text-navy">English</span>
-                    <span className="text-orange">Good</span>
-                  </div>
-                  <div className="h-2 w-full bg-gray-medium rounded-full overflow-hidden">
-                    <div className="h-full bg-navy w-[80%]"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hobbies */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-medium hover:border-orange transition-colors group">
-              <div className="w-14 h-14 bg-navy/5 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-navy transition-colors">
-                <Cpu className="text-navy group-hover:text-white transition-colors" />
-              </div>
-              <h3 className="text-2xl font-bold text-navy mb-4">Interests</h3>
-              <ul className="space-y-4">
-                {["Problem Solving", "Reading Scientific Books", "Research & Innovation", "UI/UX Design"].map((hobby) => (
-                  <li key={hobby} className="px-4 py-2 bg-gray-light rounded-xl text-navy font-medium border border-transparent hover:border-navy/20 transition-all">
-                    {hobby}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      <SkillsSection />
 
       {/* 4. Projects Section */}
       <section id="projects" className="py-24 bg-white">
@@ -173,11 +107,11 @@ export default async function Home() {
                 <div key={proj._id || index} className={`group relative rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-shadow ${isDark ? 'bg-navy shadow-2xl' : 'bg-white border-4 border-navy'}`}>
                   {proj.imageUrl && (
                     <div className="relative w-full h-56 overflow-hidden border-b-2 border-orange/20">
-                      <Image 
-                        src={proj.imageUrl} 
-                        alt={proj.title} 
+                      <Image
+                        src={proj.imageUrl}
+                        alt={proj.title}
                         fill={true}
-                        className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-navy/20 group-hover:bg-transparent transition-colors duration-500"></div>
                     </div>
@@ -234,7 +168,7 @@ export default async function Home() {
                 Recognized for excellence in innovation, ethics, and community leadership through various national and university awards.
               </p>
             </div>
-            
+
             <CertificatesSection certificates={certificates} />
           </div>
         </div>
@@ -249,7 +183,7 @@ export default async function Home() {
               <div className="p-3 bg-navy rounded-2xl text-white"><GraduationCap /></div>
               <h2 className="text-3xl font-bold text-navy">Education</h2>
             </div>
-            
+
             <div className="space-y-10 border-l-2 border-gray-medium ml-6 pl-10 relative">
               <div className="relative">
                 <div className="absolute -left-13 top-0 w-6 h-6 bg-white border-4 border-orange rounded-full"></div>
@@ -325,7 +259,7 @@ export default async function Home() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {/* Phone Card */}
-            <a 
+            <a
               href={`tel:${profile.phone}`}
               className="group bg-navy p-8 rounded-3xl shadow-xl hover:shadow-navy/20 hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center text-white"
             >
@@ -338,7 +272,7 @@ export default async function Home() {
             </a>
 
             {/* Email Card */}
-            <a 
+            <a
               href={`mailto:${profile.email}`}
               className="group bg-orange p-8 rounded-3xl shadow-xl hover:shadow-orange/20 hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center text-white"
             >
@@ -351,7 +285,7 @@ export default async function Home() {
             </a>
 
             {/* Location Card */}
-            <div 
+            <div
               className="group bg-cyan-700 p-8 rounded-3xl shadow-xl hover:shadow-cyan-700/20 hover:-translate-y-2 transition-all duration-500 flex flex-col items-center text-center text-white"
             >
               <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white group-hover:rotate-6 transition-all duration-500">
@@ -366,36 +300,15 @@ export default async function Home() {
       </section>
 
       {/* 8. Footer / References */}
-      <section className="py-20 bg-white border-t border-gray-medium">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="text-3xl font-serif text-navy mb-12">Professional References</h3>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
-            <div className="p-8 bg-white rounded-3xl shadow-sm border border-gray-medium">
-              <p className="text-orange font-bold text-sm uppercase mb-2">Professional Reference</p>
-              <h4 className="text-xl font-bold text-navy">Mr. Tibebu Legesse (MSc)</h4>
-              <p className="text-gray-500 mb-4 font-medium">Head of Department – IT, Wollo University</p>
-              <div className="text-sm space-y-1">
-                <p className="text-gray-600">+251 953 043 045</p>
-                <p className="text-navy font-medium">tibebulegesse23@gmail.com</p>
-              </div>
-            </div>
-            <div className="p-8 bg-white rounded-3xl shadow-sm border border-gray-medium text-left">
-              <p className="text-orange font-bold text-sm uppercase mb-2">Academic Advisor</p>
-              <h4 className="text-xl font-bold text-navy">Mr. Eyob (MSc)</h4>
-              <p className="text-gray-500 mb-4 font-medium">Advisor – IT, Kombolcha Institute of Tech</p>
-              <div className="text-sm space-y-1">
-                <p className="text-gray-600">+251 964 466 108</p>
-                <p className="text-navy font-medium">eyob.teshager@gmail.com</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-12 pt-8 border-t border-gray-medium flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
-            <p>© 2026 {profile.name}. Built with Next.js & Tailwind CSS.</p>
+      <ReferencesSection />
 
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link href="#" className="hover:text-navy transition-colors">Privacy Policy</Link>
-              <Link href="#" className="hover:text-navy transition-colors">Terms of Service</Link>
-            </div>
+      {/* 9. Footer */}
+      <section className="py-20 bg-white border-t border-gray-medium">
+        <div className="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm">
+          <p>© 2026 {profile.name}. Designed for Excellence.</p>
+          <div className="flex justify-center space-x-8 mt-4">
+            <Link href="#" className="hover:text-orange transition-colors">Privacy Policy</Link>
+            <Link href="#" className="hover:text-orange transition-colors">Terms of Service</Link>
           </div>
         </div>
       </section>
