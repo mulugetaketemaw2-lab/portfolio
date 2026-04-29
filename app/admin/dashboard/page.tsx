@@ -18,8 +18,7 @@ export default function AdminDashboard() {
   const [projects, setProjects] = useState<any[]>([]);
   const [isEditingProject, setIsEditingProject] = useState(false);
   const [currentProject, setCurrentProject] = useState<any>({
-    title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: ""
-
+    title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "", order: 0
   });
   const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
   const [uploadingProjectImage, setUploadingProjectImage] = useState(false);
@@ -34,9 +33,9 @@ export default function AdminDashboard() {
 
   // Certificates State
   const [certificates, setCertificates] = useState<any[]>([]);
-  const [certForm, setCertForm] = useState({ title: "", org: "" });
+  const [certForm, setCertForm] = useState({ title: "", org: "", order: 0 });
   const [editingCert, setEditingCert] = useState<any>(null);
-  const [certImageFile, setCertImageFile] = useState<File | null>(null);
+  const [certImageFiles, setCertImageFiles] = useState<File[]>([]);
   const [uploadingCertImage, setUploadingCertImage] = useState(false);
   const [certMessage, setCertMessage] = useState("");
   const certImageRef = useRef<HTMLInputElement>(null);
@@ -104,6 +103,10 @@ export default function AdminDashboard() {
       const imgData = await imgRes.json();
       if (imgData.success) {
         imageUrl = imgData.url;
+      } else {
+        setProjectMessage(imgData.message || "Image upload failed.");
+        setUploadingProjectImage(false);
+        return;
       }
     }
 
@@ -126,7 +129,7 @@ export default function AdminDashboard() {
       setIsEditingProject(false);
       setProjectImageFile(null);
       if (projectImageRef.current) projectImageRef.current.value = "";
-      setCurrentProject({ title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "" });
+      setCurrentProject({ title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "", order: 0 });
       fetchProjects();
     } else {
       setProjectMessage(data.message || "Operation failed.");
@@ -147,7 +150,7 @@ export default function AdminDashboard() {
   };
 
   const editProject = (proj: any) => {
-    setCurrentProject({ ...proj, technologies: proj.technologies.join(", ") });
+    setCurrentProject({ ...proj, technologies: proj.technologies.join(", "), order: proj.order || 0 });
     setIsEditingProject(true);
     setActiveTab("projects");
   };
@@ -166,62 +169,78 @@ export default function AdminDashboard() {
     if (data.success) {
       setUploadMessage("CV uploaded successfully! It is now live.");
       setCvFile(null);
+      // Update local profile state with the new CV URL
+      setProfile((prev: any) => ({ ...prev, cvUrl: data.url }));
     } else {
       setUploadMessage(data.message || "Failed to upload CV.");
     }
   };
 
-  // Certificate Handlers
   const saveCertificate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCertMessage("");
 
-    let imageUrl = editingCert?.imageUrl || "";
+    let imageUrls = editingCert?.imageUrls || [];
+    if (editingCert?.imageUrl && !imageUrls.includes(editingCert.imageUrl)) {
+      imageUrls = [editingCert.imageUrl, ...imageUrls];
+    }
 
-    // Upload image first if one is selected
-    if (certImageFile) {
+    // Upload images if selected
+    if (certImageFiles.length > 0) {
       setUploadingCertImage(true);
-      const formData = new FormData();
-      formData.append("file", certImageFile);
-      const imgRes = await fetch("/api/upload-certificate", { method: "POST", body: formData });
-      const imgData = await imgRes.json();
-      setUploadingCertImage(false);
-      if (!imgData.success) {
-        setCertMessage("Image upload failed. Try again.");
-        return;
+      const uploadedUrls: string[] = [];
+      
+      for (const file of certImageFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const imgRes = await fetch("/api/upload-certificate", { method: "POST", body: formData });
+        const imgData = await imgRes.json();
+        if (imgData.success) {
+          uploadedUrls.push(imgData.url);
+        } else {
+          setCertMessage(imgData.message || "Some images failed to upload.");
+          setUploadingCertImage(false);
+          return;
+        }
       }
-      imageUrl = imgData.url;
+      
+      setUploadingCertImage(false);
+      imageUrls = [...imageUrls, ...uploadedUrls];
     }
 
-    const payload = { title: certForm.title, org: certForm.org, imageUrl };
+    const payload = { 
+      title: certForm.title, 
+      org: certForm.org, 
+      imageUrls,
+      imageUrl: imageUrls[0] || "" // Set first image as primary
+    };
 
-    if (editingCert) {
-      await fetch(`/api/certificates/${editingCert._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      setCertMessage("Certificate updated!");
+    const url = editingCert ? `/api/certificates/${editingCert._id}` : "/api/certificates";
+    const method = editingCert ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      setCertMessage(editingCert ? "Certificate updated!" : "Certificate added!");
+      setCertForm({ title: "", org: "", order: 0 });
+      setCertImageFiles([]);
+      setEditingCert(null);
+      if (certImageRef.current) certImageRef.current.value = "";
+      fetchCertificates();
     } else {
-      await fetch("/api/certificates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      setCertMessage("Certificate added!");
+      setCertMessage(data.message || "Failed to save certificate.");
     }
-
-    setCertForm({ title: "", org: "" });
-    setCertImageFile(null);
-    setEditingCert(null);
-    if (certImageRef.current) certImageRef.current.value = "";
-    fetchCertificates();
   };
 
   const startEditCert = (cert: any) => {
     setEditingCert(cert);
-    setCertForm({ title: cert.title, org: cert.org });
-    setCertImageFile(null);
+    setCertForm({ title: cert.title, org: cert.org, order: cert.order || 0 });
+    setCertImageFiles([]);
     setCertMessage("");
   };
 
@@ -247,6 +266,8 @@ export default function AdminDashboard() {
       setPhotoFile(null);
       setPhotoPreview(null);
       if (photoRef.current) photoRef.current.value = "";
+      // Update local profile state with the new image URL
+      setProfile((prev: any) => ({ ...prev, imageUrl: data.url }));
     } else {
       setPhotoMessage(data.message || "Upload failed.");
     }
@@ -349,11 +370,12 @@ export default function AdminDashboard() {
                   {/* Current / Preview */}
                   <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-orange/30 flex-shrink-0 bg-gray-100 shadow-lg">
                     <Image
-                      src={photoPreview || "/profile-final.png"}
+                      src={photoPreview || profile.imageUrl || "/profile-final.png"}
                       alt="Profile"
                       fill
                       className="object-cover rounded-full"
-                      key={photoPreview || "current"}
+                      key={photoPreview || profile.imageUrl || "current"}
+                      sizes="160px"
                     />
                   </div>
 
@@ -446,7 +468,7 @@ export default function AdminDashboard() {
                     <button
                       onClick={() => {
                         setIsEditingProject(false);
-                        setCurrentProject({ title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "" });
+                        setCurrentProject({ title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "", order: 0 });
                         setProjectImageFile(null);
                         setProjectMessage("");
                       }}
@@ -477,6 +499,10 @@ export default function AdminDashboard() {
                     <label className="block text-sm font-semibold mb-1 text-gray-700">GitHub Repository URL</label>
                     <input type="url" value={currentProject.githubUrl} onChange={(e) => setCurrentProject({ ...currentProject, githubUrl: e.target.value })} className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-800" />
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-1 text-gray-700">Display Order (Lower numbers show first)</label>
+                    <input type="number" value={currentProject.order} onChange={(e) => setCurrentProject({ ...currentProject, order: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-800" />
+                  </div>
 
 
                   {/* Project Image Upload */}
@@ -503,7 +529,7 @@ export default function AdminDashboard() {
                     </div>
                     {isEditingProject && currentProject.imageUrl && !projectImageFile && (
                       <div className="mt-3 relative w-full h-32 rounded-xl overflow-hidden border border-gray-200">
-                        <Image src={currentProject.imageUrl} alt="Current" fill className="object-contain" />
+                        <Image src={currentProject.imageUrl} alt="Current" fill className="object-contain" sizes="(max-width: 768px) 100vw, 400px" />
                       </div>
                     )}
                   </div>
@@ -523,7 +549,7 @@ export default function AdminDashboard() {
                       {uploadingProjectImage ? "Saving..." : isEditingProject ? "Update Project" : "Add Project"}
                     </button>
                     {isEditingProject && (
-                      <button type="button" onClick={() => { setIsEditingProject(false); setCurrentProject({ title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "" }); setProjectImageFile(null); if (projectImageRef.current) projectImageRef.current.value = ""; }} className="px-4 py-3 bg-gray-300 text-gray-700 font-bold rounded-xl">
+                      <button type="button" onClick={() => { setIsEditingProject(false); setCurrentProject({ title: "", description: "", technologies: "", url: "", githubUrl: "", imageUrl: "", order: 0 }); setProjectImageFile(null); if (projectImageRef.current) projectImageRef.current.value = ""; }} className="px-4 py-3 bg-gray-300 text-gray-700 font-bold rounded-xl">
 
                         Cancel
                       </button>
@@ -540,7 +566,7 @@ export default function AdminDashboard() {
                     {/* Thumbnail */}
                     <div className="w-20 h-16 rounded-xl overflow-hidden bg-navy/5 flex-shrink-0 flex items-center justify-center border border-gray-200 relative">
                       {proj.imageUrl ? (
-                        <Image src={proj.imageUrl} alt={proj.title} fill className="object-cover" />
+                        <Image src={proj.imageUrl} alt={proj.title} fill className="object-cover" sizes="80px" />
                       ) : (
                         <Briefcase size={24} className="text-gray-300" />
                       )}
@@ -593,11 +619,20 @@ export default function AdminDashboard() {
                       className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-800"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-1 text-gray-700">Display Order (Lower numbers show first)</label>
+                    <input
+                      type="number"
+                      value={certForm.order}
+                      onChange={(e) => setCertForm({ ...certForm, order: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-800"
+                    />
+                  </div>
 
                   {/* Image Upload */}
                   <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
-                      Certificate Image {editingCert?.imageUrl ? "(leave blank to keep current)" : ""}
+                      Certificate Images {editingCert?.imageUrls?.length > 0 ? `(${editingCert.imageUrls.length} existing)` : ""}
                     </label>
                     <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center hover:border-orange transition-colors">
                       <input
@@ -606,20 +641,59 @@ export default function AdminDashboard() {
                         id="certImageFile"
                         className="hidden"
                         accept="image/*"
-                        onChange={(e) => setCertImageFile(e.target.files?.[0] || null)}
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setCertImageFiles(files);
+                        }}
                       />
                       <label htmlFor="certImageFile" className="cursor-pointer flex flex-col items-center">
                         <ImagePlus size={28} className="text-gray-400 mb-2" />
                         <span className="text-gray-700 font-medium text-sm">
-                          {certImageFile ? certImageFile.name : "Click to select image"}
+                          {certImageFiles.length > 0 
+                            ? `${certImageFiles.length} files selected` 
+                            : "Click to select one or more images"}
                         </span>
                         <span className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP</span>
                       </label>
                     </div>
-                    {/* Preview current image if editing */}
-                    {editingCert?.imageUrl && !certImageFile && (
-                      <div className="mt-3 relative w-full h-32 rounded-xl overflow-hidden border border-gray-200">
-                        <Image src={editingCert.imageUrl} alt="Current" fill className="object-contain" />
+
+                    {/* Previews of selected files */}
+                    {certImageFiles.length > 0 && (
+                      <div className="mt-4 grid grid-cols-4 gap-2">
+                        {certImageFiles.map((file, idx) => (
+                          <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                            <img 
+                              src={URL.createObjectURL(file)} 
+                              alt="preview" 
+                              className="w-full h-full object-cover" 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Preview current images if editing */}
+                    {editingCert?.imageUrls?.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-bold text-gray-400 mb-2 uppercase">Current Gallery</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {editingCert.imageUrls.map((url: string, idx: number) => (
+                            <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-orange/20">
+                              <Image src={url} alt="Current" fill className="object-cover" sizes="100px" />
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  const newUrls = editingCert.imageUrls.filter((_: any, i: number) => i !== idx);
+                                  setEditingCert({...editingCert, imageUrls: newUrls});
+                                }}
+                                className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-bl-lg hover:bg-red-600"
+                              >
+                                <XCircle size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -642,7 +716,7 @@ export default function AdminDashboard() {
                     {editingCert && (
                       <button
                         type="button"
-                        onClick={() => { setEditingCert(null); setCertForm({ title: "", org: "" }); setCertImageFile(null); setCertMessage(""); if (certImageRef.current) certImageRef.current.value = ""; }}
+                        onClick={() => { setEditingCert(null); setCertForm({ title: "", org: "", order: 0 }); setCertImageFiles([]); setCertMessage(""); if (certImageRef.current) certImageRef.current.value = ""; }}
                         className="px-4 py-3 bg-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-300"
                       >
                         Cancel
@@ -664,7 +738,7 @@ export default function AdminDashboard() {
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-navy/5 flex-shrink-0 flex items-center justify-center border border-gray-200">
                       {cert.imageUrl ? (
                         <div className="relative w-full h-full">
-                          <Image src={cert.imageUrl} alt={cert.title} fill className="object-cover" />
+                          <Image src={cert.imageUrl} alt={cert.title} fill className="object-cover" sizes="64px" />
                         </div>
                       ) : (
                         <Award size={24} className="text-gray-300" />
@@ -673,8 +747,8 @@ export default function AdminDashboard() {
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-navy truncate">{cert.title}</h4>
                       <p className="text-sm text-gray-500">{cert.org}</p>
-                      <span className={`text-xs font-medium mt-1 inline-block ${cert.imageUrl ? "text-green-600" : "text-gray-400"}`}>
-                        {cert.imageUrl ? "✓ Has image" : "No image yet"}
+                      <span className={`text-xs font-medium mt-1 inline-block ${cert.imageUrls?.length > 0 || cert.imageUrl ? "text-green-600" : "text-gray-400"}`}>
+                        {(cert.imageUrls?.length || (cert.imageUrl ? 1 : 0))} image{(cert.imageUrls?.length || (cert.imageUrl ? 1 : 0)) === 1 ? "" : "s"}
                       </span>
                     </div>
                     <div className="flex gap-2">

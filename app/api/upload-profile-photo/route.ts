@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import path from "path";
 import { cookies } from "next/headers";
 import * as jose from "jose";
+import cloudinary from "@/lib/cloudinary";
+import { getNetworkTimestamp } from "@/lib/getTime";
+import dbConnect from "@/lib/mongodb";
+import Profile from "@/models/Profile";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Invalid session" }, { status: 401 });
     }
 
+    // Check for placeholder values
+    if (process.env.CLOUDINARY_API_KEY === "your_api_key" || !process.env.CLOUDINARY_API_KEY) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Cloudinary is not configured. Please update your .env file with actual credentials." 
+      }, { status: 400 });
+    }
+
     const data = await req.formData();
     const file: File | null = data.get("file") as unknown as File;
 
@@ -33,27 +43,51 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Validate it is actually an image by checking magic bytes
-    const isPng  = buffer[0] === 0x89 && buffer[1] === 0x50; // PNG
-    const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8; // JPEG
-    const isWebp = buffer[8] === 0x57 && buffer[9] === 0x45; // WEBP
+    const timestamp = await getNetworkTimestamp();
 
-    if (!isPng && !isJpeg && !isWebp) {
-      return NextResponse.json(
-        { success: false, message: "Please upload a valid image file (PNG, JPG, or WEBP)." },
-        { status: 400 }
-      );
+    // Upload to Cloudinary
+    const uploadResult: any = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { 
+          folder: "profile", 
+          resource_type: "auto",
+          timestamp: timestamp
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(buffer);
+    });
+
+    // Update Profile record in DB
+    await dbConnect();
+    let profile = await Profile.findOne();
+    if (profile) {
+      profile.imageUrl = uploadResult.secure_url;
+      await profile.save();
+    } else {
+      await Profile.create({ imageUrl: uploadResult.secure_url });
     }
 
-    // Always save as profile-final.png so the page.tsx <Image> src never changes
-    const filePath = path.join(process.cwd(), "public", "profile-final.png");
-    await writeFile(filePath, buffer);
-
-    return NextResponse.json({ success: true, message: "Profile photo updated!" });
-  } catch (error) {
+    return NextResponse.json({ 
+      success: true, 
+      url: uploadResult.secure_url, 
+      message: "Profile photo updated!" 
+    });
+  } catch (error: any) {
     console.error("Error uploading profile photo:", error);
+    
+    // Handle specific Cloudinary errors
+    if (error.message?.includes("Stale request")) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Upload failed: System clock mismatch. Please ensure your computer's date and time are correct." 
+      }, { status: 400 });
+    }
+
     return NextResponse.json(
-      { success: false, message: "Server error during upload" },
+      { success: false, message: error.message || "Server error during upload" },
       { status: 500 }
     );
   }

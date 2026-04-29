@@ -25,6 +25,14 @@ const ProfileSchema = new mongoose.Schema({
     type: String,
     default: "Addis Ababa, Ethiopia",
   },
+  imageUrl: {
+    type: String,
+    default: "/profile-final.png",
+  },
+  cvUrl: {
+    type: String,
+    default: "/cv.pdf",
+  },
 });
 
 export default mongoose.models.Profile || mongoose.model("Profile", ProfileSchema);

@@ -15,6 +15,7 @@ export async function GET() {
 export async function POST(req: Request) {
   await dbConnect();
   const body = await req.json();
+  console.log("POST Certificate body:", body);
   const cert = await Certificate.create(body);
   return NextResponse.json({ success: true, data: cert });
 }

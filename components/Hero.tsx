@@ -152,6 +152,7 @@ export default function Hero({ profile, profileImage }: HeroProps) {
                 fill={true}
                 className="object-cover rounded-full"
                 priority
+                sizes="(max-width: 768px) 288px, 384px"
               />
             </div>
           </motion.div>

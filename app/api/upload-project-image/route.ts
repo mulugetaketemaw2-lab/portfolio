@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { cookies } from "next/headers";
 import * as jose from "jose";
+import cloudinary from "@/lib/cloudinary";
+import { getNetworkTimestamp } from "@/lib/getTime";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Invalid session" }, { status: 401 });
     }
 
+    // Check for placeholder values
+    if (process.env.CLOUDINARY_API_KEY === "your_api_key" || !process.env.CLOUDINARY_API_KEY) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Cloudinary is not configured. Please update your .env file with actual credentials." 
+      }, { status: 400 });
+    }
+
     const data = await req.formData();
     const file: File | null = data.get("file") as unknown as File;
 
@@ -31,22 +39,39 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Ensure /public/projects directory exists
-    const uploadDir = path.join(process.cwd(), "public", "projects");
-    await mkdir(uploadDir, { recursive: true });
+    const timestamp = await getNetworkTimestamp();
 
-    // Use a timestamp-based unique filename
-    const ext = file.name.split(".").pop() || "jpg";
-    const fileName = `proj_${Date.now()}.${ext}`;
-    const filePath = path.join(uploadDir, fileName);
+    // Upload to Cloudinary
+    const uploadResult: any = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { 
+          folder: "projects", 
+          resource_type: "auto",
+          timestamp: timestamp
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(buffer);
+    });
 
-    await writeFile(filePath, buffer);
-
-    // Return the public URL path
-    const publicUrl = `/projects/${fileName}`;
-    return NextResponse.json({ success: true, url: publicUrl });
-  } catch (error) {
+    // Return the Cloudinary URL
+    return NextResponse.json({ success: true, url: uploadResult.secure_url });
+  } catch (error: any) {
     console.error("Error uploading project image:", error);
-    return NextResponse.json({ success: false, message: "Server error during upload" }, { status: 500 });
+
+    // Handle specific Cloudinary errors
+    if (error.message?.includes("Stale request")) {
+      return NextResponse.json({ 
+        success: false, 
+        message: "Upload failed: System clock mismatch. Please ensure your computer's date and time are correct." 
+      }, { status: 400 });
+    }
+
+    return NextResponse.json({ 
+      success: false, 
+      message: error.message || "Server error during upload" 
+    }, { status: 500 });
   }
 }

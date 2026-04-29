@@ -22,13 +22,15 @@ export default async function Home() {
   const certificatesDoc = await Certificate.find({}).sort({ order: 1, createdAt: 1 });
 
   // Fallbacks if DB is empty
-  const profile = profileDoc || {
+    const profile = profileDoc || {
     name: "Mulugeta Ketemaw",
     summary: "A motivated and dedicated Information Technology graduate with strong skills in web development and software systems.",
     professionalSummary: "Experienced in developing applications using modern technologies such as React, Node.js, and MongoDB. Passionate about problem solving, research, and innovation, with proven achievement in competitive projects.",
     phone: "+251 915 942 488",
     email: "mulugetaketemaw2@gmail.com",
-    location: "Addis Ababa, Ethiopia"
+    location: "Addis Ababa, Ethiopia",
+    imageUrl: "/profile-final.png",
+    cvUrl: "/cv.pdf"
   };
 
   const projects = projectsDoc.length > 0 ? projectsDoc : [
@@ -57,13 +59,19 @@ export default async function Home() {
     { _id: "6", title: "Competition Certificates (2x)", org: "Innovation Awards", imageUrl: "" },
   ];
   const certificates = certificatesDoc.length > 0
-    ? certificatesDoc.map((c: any) => ({ _id: c._id.toString(), title: c.title, org: c.org, imageUrl: c.imageUrl || "" }))
+    ? certificatesDoc.map((c: any) => ({ 
+        _id: c._id.toString(), 
+        title: c.title, 
+        org: c.org, 
+        imageUrl: c.imageUrl || "",
+        imageUrls: c.imageUrls || []
+      }))
     : defaultCerts;
 
   return (
     <div className="flex flex-col">
       {/* 1. Hero / About Us Section */}
-      <Hero profile={{ name: profile.name, summary: profile.summary }} profileImage={profileImage} />
+      <Hero profile={{ name: profile.name, summary: profile.summary }} profileImage={profile.imageUrl || profileImage} />
 
       {/* 2. Professional Summary Section */}
       <section className="py-24 bg-white relative overflow-hidden">
@@ -112,6 +120,7 @@ export default async function Home() {
                         alt={proj.title}
                         fill={true}
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                       <div className="absolute inset-0 bg-navy/20 group-hover:bg-transparent transition-colors duration-500"></div>
                     </div>

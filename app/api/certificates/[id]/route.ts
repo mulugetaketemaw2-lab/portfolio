@@ -9,6 +9,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   await dbConnect();
   const { id } = await params;
   const body = await req.json();
+  console.log("PUT Certificate body:", body);
   const cert = await Certificate.findByIdAndUpdate(id, body, { new: true });
   return NextResponse.json({ success: true, data: cert });
 }
