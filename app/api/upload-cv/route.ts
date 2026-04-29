@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       cloudinary.uploader.upload_stream(
         { 
           folder: "cv", 
-          resource_type: "raw",
+          resource_type: "auto",
           timestamp: timestamp
         },
         (error, result) => {
